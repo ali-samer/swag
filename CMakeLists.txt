@@ -124,7 +124,6 @@ configure_file(
         "${CMAKE_CURRENT_BINARY_DIR}/aiecad/aiecad-config.h"
 )
 
-
 # ---- optional manual override (keeps your auto-detect as default) ----
 set(AIECAD_IMGUI_BINDINGS_DIR "" CACHE PATH "Path to Dear ImGui backends/ folder (leave empty to auto-detect)")
 

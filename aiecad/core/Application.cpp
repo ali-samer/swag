@@ -53,53 +53,6 @@ Application::~Application() {
 	s_instance = nullptr;
 }
 
-/*
-void Application::init() {
-	m_eventBus = std::make_unique<EventBus>();
-	m_window   = Window::Create(m_appSpec.window_spec);
-
-	m_window->setEventCallback(
-		[this](const BackendWindowEvent& e) {
-			switch (e.type) {
-			case BackendWindowEventType::Close:
-					m_eventBus->publish(WindowCloseEvent{});
-					break;
-				case BackendWindowEventType::Resize:
-					m_eventBus->publish(WindowResizeEvent{
-						.width  = e.width,
-						.height = e.height
-					});
-					break;
-				default:
-					break;
-				}
-			}
-		);
-
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-	ImGui::StyleColorsDark();
-
-	ImGui_ImplGlfw_InitForOpenGL((GLFWwindow*)m_window->getNativeHandle(), true);
-	ImGui_ImplOpenGL3_Init("#version 450");
-
-	auto editorLayer = std::make_unique<EditorLayer>(*m_eventBus);
-	pushLayer(std::move(editorLayer));
-	pushLayer(std::make_unique<EmptyLayer>());
-
-	m_eventBus->subscribe<WindowCloseEvent>(
-		[this](const WindowCloseEvent&) {
-			requestClose();
-		}
-	);
-}
-*/
-
 void Application::init() {
 	m_eventBus = std::make_unique<EventBus>();
 
@@ -163,33 +116,6 @@ void Application::shutdown() {
 	m_eventBus.reset();
 }
 
-/*
-int Application::run() {
-	m_timestep.start();
-
-	while (m_running) {
-		m_window->onUpdate();
-
-		float dt = m_timestep.getDelta();
-		m_timestep.update();
-
-		for (auto &layerPtr : m_layerStack.getLayers()) {
-			if (layerPtr) {
-				layerPtr->onUpdate(dt);
-			}
-		}
-
-		for (auto &layerPtr : m_layerStack.getLayers()) {
-			if (layerPtr) {
-				layerPtr->onImGuiRender();
-			}
-		}
-
-	}
-	return 0;
-}
- */
-
 int Application::run() {
 	while (m_running) {
 		if (!m_window) {
@@ -236,4 +162,5 @@ void Application::pushLayer(LayerPtr layer) {
 void Application::pushOverlay(LayerPtr overlay) {
 	m_layerStack.pushOverlay(std::move(overlay));
 }
+
 } // namespace aiecad
