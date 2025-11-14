@@ -71,7 +71,7 @@ conan profile show default
 In the project root, where a file named `conanfile.py` exists, run the following command:
 
 ```bash
-conan install . --build=missing
+conan install . --build=missing -s compiler.cppstd=17
 ```
 
 This will:
@@ -87,7 +87,7 @@ After installing the required dependencies through Conan, run the following comm
 
 ```bash
 cmake --preset=dev
-cmake --build --preset=dev
+cmake --build --preset=dev --config Release
 ```
 then to run the project:
 

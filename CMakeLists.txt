@@ -11,9 +11,10 @@ set(CMAKE_MODULE_PATH
 )
 
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}"
-        "${CMAKE_BINARY_DIR}/Release/generators"
-        "${CMAKE_BINARY_DIR}/Release"
+        "${CMAKE_BINARY_DIR}/generators"
+        "${CMAKE_BINARY_DIR}"
 )
+message(WARNING "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
 
 project(aiecad
         VERSION 0.1.0
@@ -70,6 +71,22 @@ aiecad_auto_source(
 )
 
 include(ProjectDeps)
+# -- locate ImGui root (where imgui.h lives) --
+find_path(IMGUI_INCLUDE_DIR
+    NAMES imgui.h
+    HINTS
+      "${AIECAD_IMGUI_BINDINGS_DIR}"
+      "${PROJECT_SOURCE_DIR}/thirdparty/imgui"
+      "${PROJECT_SOURCE_DIR}/external/imgui"
+      "${PROJECT_SOURCE_DIR}/deps/imgui"
+)
+
+if(IMGUI_INCLUDE_DIR)
+    message(STATUS "ImGui include dir found: ${IMGUI_INCLUDE_DIR}")
+else()
+    message(WARNING "Could not find imgui.h automatically. Set AIECAD_IMGUI_BINDINGS_DIR or IMGUI_INCLUDE_DIR to the ImGui root.")
+endif()
+
 include(checks/AIECADConfigs)
 
 add_library(aiecad_deps INTERFACE)
@@ -89,6 +106,9 @@ if (AIECAD_COMPILE_DEFS)
 else ()
     message(STATUS "no compile defs...")
 endif()
+
+# Add SPDLOG_FMT_EXTERNAL to all targets that use spdlog
+target_compile_definitions(aiecad_deps INTERFACE SPDLOG_FMT_EXTERNAL)
 
 if (XRT_LIBDIR)
     set_target_properties(aiecad_deps PROPERTIES
@@ -140,6 +160,34 @@ endif()
 
 # ---- core library ----
 list(APPEND aiecad_base_files ${src_files} ${header_files})
+# ---- spdlog detection and robust linking ----
+find_package(spdlog QUIET)
+
+if (TARGET spdlog::spdlog)
+    message(STATUS "Linking to spdlog::spdlog target")
+    target_link_libraries(aiecad_deps INTERFACE spdlog::spdlog)
+elseif (TARGET spdlog::spdlog_header_only)
+    # Conan often exposes the header-only variant under this name
+    message(STATUS "Linking to spdlog::spdlog_header_only target (Conan provided)")
+    target_link_libraries(aiecad_deps INTERFACE spdlog::spdlog_header_only)
+elseif (spdlog_FOUND)
+    # find_package found spdlog but no imported target — try the conventional target name
+    message(WARNING "spdlog found but no modern CMake target detected; attempting to use spdlog::spdlog")
+    target_link_libraries(aiecad_deps INTERFACE spdlog::spdlog)
+else()
+    # Fallback for Conan legacy variables (if using Conan generator that sets these)
+    if (DEFINED CONAN_INCLUDE_DIRS_spdlog OR DEFINED CONAN_LIBS_spdlog)
+        message(STATUS "Using Conan-provided spdlog variables")
+        if (DEFINED CONAN_INCLUDE_DIRS_spdlog)
+            target_include_directories(aiecad_deps INTERFACE ${CONAN_INCLUDE_DIRS_spdlog})
+        endif()
+        if (DEFINED CONAN_LIBS_spdlog)
+            target_link_libraries(aiecad_deps INTERFACE ${CONAN_LIBS_spdlog})
+        endif()
+    else()
+        message(WARNING "spdlog not found. Run conan install, add spdlog as a dependency, or vendor spdlog.")
+    endif()
+endif()
 
 add_library(aiecad_lib STATIC
         ${aiecad_base_files}
@@ -149,18 +197,36 @@ add_library(aiecad_lib STATIC
 )
 
 target_include_directories(aiecad_lib
-        PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
-        $<INSTALL_INTERFACE:include>
-        "${AIECAD_IMGUI_BINDINGS_DIR}"
+    PUBLIC
+      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+      $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+      $<INSTALL_INTERFACE:include>
+      "${AIECAD_IMGUI_BINDINGS_DIR}"                        # backends
+      $<$<BOOL:${IMGUI_INCLUDE_DIR}>:${IMGUI_INCLUDE_DIR}> # ImGui root (imgui.h)
 )
 
+
 target_link_libraries(aiecad_lib PUBLIC aiecad_deps)
+
+# Also link dependencies directly to ensure include directories propagate correctly
+# This is needed because generator expressions in INTERFACE_INCLUDE_DIRECTORIES
+# may not propagate correctly through interface libraries in all cases
+if(TARGET glfw)
+    target_link_libraries(aiecad_lib PUBLIC glfw)
+endif()
+if(TARGET spdlog::spdlog_header_only)
+    target_link_libraries(aiecad_lib PUBLIC spdlog::spdlog_header_only)
+endif()
 
 target_compile_definitions(aiecad_lib PRIVATE
         IMGUI_IMPL_OPENGL_LOADER_GLAD
         IMGUI_ENABLE_DOCKING
+        SPDLOG_FMT_EXTERNAL
+)
+
+# Add /utf-8 flag for fmt Unicode support
+target_compile_options(aiecad_lib PRIVATE
+        $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
 )
 
 if (AIECAD_BUILD_TESTS)
@@ -174,3 +240,15 @@ endif ()
 
 add_executable(aiecad_app main.cpp)
 target_link_libraries(aiecad_app PRIVATE aiecad_lib)
+
+# Ensure all dependencies are linked (static libraries don't propagate dependencies)
+# Link through aiecad_deps which has all the dependencies
+target_link_libraries(aiecad_app PRIVATE aiecad_deps)
+
+# Explicitly link fmt and imgui since they might not propagate from static library
+if(TARGET fmt::fmt)
+    target_link_libraries(aiecad_app PRIVATE fmt::fmt)
+endif()
+if(TARGET imgui::imgui)
+    target_link_libraries(aiecad_app PRIVATE imgui::imgui)
+endif()

@@ -5,11 +5,10 @@
     {
       "name": "dev",
       "displayName": "Dev (Release)",
-      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/Release/generators/conan_toolchain.cmake",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/build/generators/conan_toolchain.cmake",
         "IS_MAINTAINER_MODE": "ON"
       }
     }

@@ -32,7 +32,7 @@ public:
 
 	void reset();
 	bool isValid() const noexcept {
-		return m_bus != nullptr and m_listenerId != 0;
+		return m_bus != nullptr && m_listenerId != 0;
 	}
 
 	explicit operator bool() const noexcept { return isValid(); }

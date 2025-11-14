@@ -6,10 +6,18 @@
 int main(int /*argc*/, char ** /*argv*/) {
     aiecad::ApplicationSpecification spec{
         .name = "AIECAD",
-        .window_spec.width = 1600,
-        .window_spec.height = 900,
-        .window_spec.vSync = true,
-        .maximized = false
+        .sandboxRoot = {},
+        .devMode = false,
+        .maximized = false,
+        .window_spec = {
+            .title = "AIECAD",
+            .width = 1600,
+            .height = 900,
+            .resizable = true,
+            .vSync = true,
+            .dpiScale = 1.f,
+            .specVersion = 0
+        }
     };
 
     try {

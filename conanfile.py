@@ -30,7 +30,10 @@ class Deps(ConanFile):
         self.options["imgui"].with_opengl3 = True
 
         self.options["spdlog"].header_only = True
-        self.options["spdlog"].fmt_external = False
+        self.options["spdlog"].fmt_external = True
+        
+        # fmt needs to be built as a library (not header-only) for assert_fail
+        self.options["fmt/*"].header_only = False
 
     def generate(self):
         imgui = self.dependencies.get("imgui")

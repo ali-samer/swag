@@ -14,4 +14,14 @@ function(aiecad_build_sandbox)
 
     target_link_libraries(event_bus_practice PRIVATE aiecad_lib)
     target_link_libraries(panels PRIVATE aiecad_lib)
+    
+    # Add SPDLOG_FMT_EXTERNAL and /utf-8 flag for sandbox targets
+    target_compile_definitions(event_bus_practice PRIVATE SPDLOG_FMT_EXTERNAL)
+    target_compile_definitions(panels PRIVATE SPDLOG_FMT_EXTERNAL)
+    target_compile_options(event_bus_practice PRIVATE
+            $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+    )
+    target_compile_options(panels PRIVATE
+            $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+    )
 endfunction()
